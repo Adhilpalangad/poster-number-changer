@@ -21,7 +21,6 @@ app.use(express.static('public'));
 // API endpoint to update the phone number in the uploaded image
 app.post('/update-contact-number', upload.single('image'), async (req, res) => {
     const { newNumber, textColor, backgroundColor, startX, startY, endX, endY } = req.body;
-    console.log(req.body);
     
 
   if (!newNumber || !textColor || !backgroundColor || !startX || !startY || !endX || !endY) {
@@ -30,7 +29,6 @@ app.post('/update-contact-number', upload.single('image'), async (req, res) => {
 
   const imagePath = req.file ? req.file.path : path.join(__dirname, 'images', 'original_image.jpg');
   const outputPath = path.join(__dirname, 'output', 'updated_image.jpg');
-  console.log(__dirname);
   
   try {
     await updateContactNumber(imagePath, newNumber, textColor, backgroundColor, 
@@ -56,18 +54,30 @@ async function updateContactNumber(imagePath, newNumber, textColor, backgroundCo
   // Draw the original image
   ctx.drawImage(image, 0, 0);
 
-  // Define the rectangle dimensions
-  const rectWidth = endX - startX;
-  const rectHeight = endY - startY;
+// Measure the text size
+ctx.font = '600 60px Oswald'; // Ensure this matches the text font used
+const textMetrics = ctx.measureText(newNumber);
+const textWidth = textMetrics.width;
+const textHeight = 50; // Approximate height based on font size, can be fine-tuned
 
-  // Set the background color and draw the rectangle
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(startX, startY, rectWidth, rectHeight);
+// Define padding around the text
+const padding = 20;
 
-  // Set the text color and draw the text
-  ctx.fillStyle = textColor;
-  ctx.font = '600 60px Oswald' // Adjust as needed
-  ctx.fillText(newNumber, startX + 10, startY + rectHeight / 2 + 15); // Adjust text position as needed
+// Calculate the rectangle dimensions to fit the text plus padding
+const rectWidth = textWidth + padding * 2;
+const rectHeight = textHeight + padding * 2;
+
+// Ensure rectangle is drawn starting from startX and startY
+ctx.fillStyle = backgroundColor;
+ctx.fillRect(startX, startY, rectWidth, rectHeight);
+
+// Adjust text position to be centered within the rectangle
+const textX = startX + (rectWidth - textWidth) / 2;
+const textY = startY + (rectHeight + textHeight) / 2 - 10; // Adjusted for vertical alignment
+
+// Set the text color and draw the text
+ctx.fillStyle = textColor;
+ctx.fillText(newNumber, textX, textY);
 
   // Save the updated image
   const buffer = canvas.toBuffer('image/jpeg');

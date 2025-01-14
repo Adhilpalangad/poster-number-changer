@@ -361,7 +361,6 @@ function drawRectangle(x, y) {
 canvas.addEventListener('touchstart', (event) => {
   event.preventDefault();
   const { x, y } = getCanvasCoordinates(event);
-  console.log("touchstart", x, y); // Debug log to verify touchstart coordinates
   startX = x;
   startY = y;
   isDrawing = true;
@@ -372,7 +371,6 @@ canvas.addEventListener('touchmove', (event) => {
   const { x, y } = getCanvasCoordinates(event);
   endX = x;
   endY = y;
-  console.log("touchmove", x, y); // Debug log to verify touchmove coordinates
   drawRectangle(x, y); // Draw rectangle while moving
 });
 
@@ -389,7 +387,6 @@ canvas.addEventListener('touchend', (event) => {
   const x = (event.changedTouches[0].clientX - rect.left) * scaleX;
   const y = (event.changedTouches[0].clientY - rect.top) * scaleY;
 
-  console.log("touchend - x:", x, "y:", y); // Debug log to verify the touchend coordinates
 
   // Update the final coordinates
   endX = x;

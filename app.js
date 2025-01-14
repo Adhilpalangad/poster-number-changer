@@ -30,7 +30,8 @@ app.post('/update-contact-number', upload.single('image'), async (req, res) => {
 
   const imagePath = req.file ? req.file.path : path.join(__dirname, 'images', 'original_image.jpg');
   const outputPath = path.join(__dirname, 'output', 'updated_image.jpg');
-
+  console.log(__dirname);
+  
   try {
     await updateContactNumber(imagePath, newNumber, textColor, backgroundColor, 
       parseInt(startX), parseInt(startY), parseInt(endX), parseInt(endY), outputPath);
@@ -65,7 +66,7 @@ async function updateContactNumber(imagePath, newNumber, textColor, backgroundCo
 
   // Set the text color and draw the text
   ctx.fillStyle = textColor;
-  ctx.font = '50px Arial'; // Adjust as needed
+  ctx.font = '600 60px Oswald' // Adjust as needed
   ctx.fillText(newNumber, startX + 10, startY + rectHeight / 2 + 15); // Adjust text position as needed
 
   // Save the updated image

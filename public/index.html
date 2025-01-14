@@ -11,7 +11,18 @@
   padding: 0;
   box-sizing: border-box;
 }
+#modal-image {
+    max-width: 100%; /* Ensures the image does not exceed the modal width */
+    max-height: 80vh; /* Limits the height to 80% of the viewport height */
+    display: block;
+    margin: 0 auto; /* Centers the image horizontally */
+  }
 
+  .modal-content {
+    width: 90%; /* Adjust modal width as needed */
+    max-width: 800px; /* Set a max width for the modal */
+    margin: auto; /* Center the modal */
+  }
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
@@ -296,159 +307,119 @@ button.loading::after {
       <button type="submit">Update Image</button>
     </form>
 
-    <div id="result" style="display:none;">
-      <h2>Updated Image</h2>
-      <a id="download-link" href="#" download="updated_image.jpg">Download Updated Image</a>
+    <div id="result-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span id="close-modal" class="close">&times;</span>
+        <h2>Updated Image Preview</h2>
+        <img id="modal-image" src="#" alt="Updated Image">
+        <a id="download-link" href="#" download="updated_image.jpg">Download Updated Image</a>
+        <button id="edit-again">Edit Again</button>
+      </div>
     </div>
   </div>
 
   <script>
     const imageInput = document.getElementById('image');
-const canvas = document.getElementById('image-preview');
-const ctx = canvas.getContext('2d');
-let image = new Image();
-let startX = 0, startY = 0, endX = 0, endY = 0, isDrawing = false;
+    const canvas = document.getElementById('image-preview');
+    const ctx = canvas.getContext('2d');
+    let image = new Image();
+    let startX = 0, startY = 0, endX = 0, endY = 0, isDrawing = false;
 
-// Helper function to get the correct mouse/touch position relative to the canvas
-function getCanvasCoordinates(event) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width; // Scale factor for horizontal
-  const scaleY = canvas.height / rect.height; // Scale factor for vertical
+    function getCanvasCoordinates(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let x, y;
+      if (event.touches && event.touches[0]) {
+        x = (event.touches[0].clientX - rect.left) * scaleX;
+        y = (event.touches[0].clientY - rect.top) * scaleY;
+      } else {
+        x = (event.clientX - rect.left) * scaleX;
+        y = (event.clientY - rect.top) * scaleY;
+      }
+      return { x, y };
+    }
 
-  let x, y;
-  if (event.touches && event.touches[0]) {
-    // For touch events, we use the first touch
-    x = (event.touches[0].clientX - rect.left) * scaleX;
-    y = (event.touches[0].clientY - rect.top) * scaleY;
-  } else if (event.clientX && event.clientY) {
-    // For mouse events
-    x = (event.clientX - rect.left) * scaleX;
-    y = (event.clientY - rect.top) * scaleY;
-  }
-  return { x, y };
-}
-
-// Image load and redraw on canvas
-image.onload = () => {
-  canvas.style.display = 'block';
-  canvas.width = image.width;
-  canvas.height = image.height;
-  ctx.drawImage(image, 0, 0);
-};
-
-// Handle image input
-imageInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      image.src = e.target.result;
+    image.onload = () => {
+      canvas.style.display = 'block';
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
     };
-    reader.readAsDataURL(file);
-  }
-});
 
-// Drawing the rectangle on canvas based on touch or mouse events
-function drawRectangle(x, y) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas before redrawing
-  ctx.drawImage(image, 0, 0); // Redraw the image to ensure it stays in place
-  ctx.strokeStyle = 'blue';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(startX, startY, x - startX, y - startY); // Draw the rectangle
-}
+    imageInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          image.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
 
-// Event listeners for touch events
-canvas.addEventListener('touchstart', (event) => {
-  event.preventDefault();
-  const { x, y } = getCanvasCoordinates(event);
-  startX = x;
-  startY = y;
-  isDrawing = true;
-});
+    function drawRectangle(x, y) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(startX, startY, x - startX, y - startY);
+    }
 
-canvas.addEventListener('touchmove', (event) => {
-  if (!isDrawing) return;
-  const { x, y } = getCanvasCoordinates(event);
-  endX = x;
-  endY = y;
-  drawRectangle(x, y); // Draw rectangle while moving
-});
+    canvas.addEventListener('mousedown', (event) => {
+      const { x, y } = getCanvasCoordinates(event);
+      startX = x;
+      startY = y;
+      isDrawing = true;
+    });
 
-canvas.addEventListener('touchend', (event) => {
-  // Prevent any default behavior such as scrolling or zooming
-  event.preventDefault();
+    canvas.addEventListener('mousemove', (event) => {
+      if (!isDrawing) return;
+      const { x, y } = getCanvasCoordinates(event);
+      endX = x;
+      endY = y;
+      drawRectangle(x, y);
+    });
 
-  // Get the final position of the touch (x, y) relative to the canvas
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width; // Scale factor for horizontal
-  const scaleY = canvas.height / rect.height; // Scale factor for vertical
+    canvas.addEventListener('mouseup', (event) => {
+      const { x, y } = getCanvasCoordinates(event);
+      document.getElementById('startX').value = startX;
+      document.getElementById('startY').value = startY;
+      document.getElementById('endX').value = x;
+      document.getElementById('endY').value = y;
+      isDrawing = false;
+    });
 
-  // Calculate touch position
-  const x = (event.changedTouches[0].clientX - rect.left) * scaleX;
-  const y = (event.changedTouches[0].clientY - rect.top) * scaleY;
+    document.getElementById('update-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const response = await fetch('/update-contact-number', {
+        method: 'POST',
+        body: formData
+      });
 
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const modalImage = document.getElementById('modal-image');
+        modalImage.src = url;
+        const downloadLink = document.getElementById('download-link');
+        downloadLink.href = url;
+        document.getElementById('result-modal').style.display = 'block';
+      } else {
+        alert('Error updating image.');
+      }
+    });
 
-  // Update the final coordinates
-  endX = x;
-  endY = y;
+    document.getElementById('close-modal').addEventListener('click', () => {
+      document.getElementById('result-modal').style.display = 'none';
+    });
 
-  // Update the hidden fields for form submission
-  document.getElementById('startX').value = startX;
-  document.getElementById('startY').value = startY;
-  document.getElementById('endX').value = endX;
-  document.getElementById('endY').value = endY;
-
-  // Mark drawing as finished
-  isDrawing = false;
-});
-
-
-
-// Event listeners for mouse events
-canvas.addEventListener('mousedown', (event) => {
-  const { x, y } = getCanvasCoordinates(event);
-  startX = x;
-  startY = y;
-  isDrawing = true;
-});
-
-canvas.addEventListener('mousemove', (event) => {
-  if (!isDrawing) return;
-  const { x, y } = getCanvasCoordinates(event);
-  endX = x;
-  endY = y;
-  drawRectangle(x, y); // Draw rectangle while moving
-});
-
-canvas.addEventListener('mouseup', (event) => {
-  const { x, y } = getCanvasCoordinates(event);
-  document.getElementById('startX').value = startX;
-  document.getElementById('startY').value = startY;
-  document.getElementById('endX').value = x;
-  document.getElementById('endY').value = y;
-  isDrawing = false;
-});
-
-document.getElementById('update-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  const response = await fetch('/update-contact-number', {
-    method: 'POST',
-    body: formData
-  });
-
-  if (response.ok) {
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const downloadLink = document.getElementById('download-link');
-    downloadLink.href = url;
-    document.getElementById('result').style.display = 'block';
-  } else {
-    alert('Error updating image.');
-  }
-});
-
+    document.getElementById('edit-again').addEventListener('click', () => {
+      document.getElementById('result-modal').style.display = 'none';
+      canvas.style.display = 'block';
+    });
   </script>
 </body>
+
 </html>

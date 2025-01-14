@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update Phone Number</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 100%;
+      margin: auto;
+      padding: 10px;
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+    }
+    #image-preview {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      cursor: crosshair;
+    }
+    .color-picker {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .color-box {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      margin: 5px;
+    }
+    /* Responsive layout for small devices */
+    @media screen and (max-width: 600px) {
+      .container {
+        padding: 5px;
+      }
+      .color-picker {
+        flex-direction: column;
+      }
+      .color-box {
+        width: 30px;
+        height: 30px;
+      }
+      #image-preview {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Update Phone Number in Image</h1>
+    <form id="update-form" enctype="multipart/form-data">
+      <label for="image">Upload Image:</label>
+      <input type="file" id="image" name="image" accept="image/*" required>
+
+      <label for="newNumber">New Phone Number:</label>
+      <input type="text" id="newNumber" name="newNumber" required>
+
+      <div class="color-picker">
+        <div>
+          <label for="textColor">Text Color:</label>
+          <input type="color" id="textColor" name="textColor" value="#ff0000" required>
+        </div>
+        <div>
+          <label for="backgroundColor">Background Color:</label>
+          <input type="color" id="backgroundColor" name="backgroundColor" value="#ffffff" required>
+        </div>
+      </div>
+
+      <input type="hidden" id="startX" name="startX" value="0">
+      <input type="hidden" id="startY" name="startY" value="0">
+      <input type="hidden" id="endX" name="endX" value="0">
+      <input type="hidden" id="endY" name="endY" value="0">
+
+      <canvas id="image-preview" style="display:none;"></canvas>
+
+      <button type="submit">Update Image</button>
+    </form>
+
+    <div id="result" style="display:none;">
+      <h2>Updated Image</h2>
+      <a id="download-link" href="#" download="updated_image.jpg">Download Updated Image</a>
+    </div>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('image');
+    const canvas = document.getElementById('image-preview');
+    const ctx = canvas.getContext('2d');
+    let image = new Image();
+    let startX = 0, startY = 0, isDrawing = false;
+
+    // Helper function to get the correct mouse position relative to the canvas
+    function getCanvasCoordinates(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width; // Scale factor for horizontal
+      const scaleY = canvas.height / rect.height; // Scale factor for vertical
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+      return { x, y };
+    }
+
+    imageInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          image.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    image.onload = () => {
+      canvas.style.display = 'block';
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+    };
+
+    // Pick color from the image on click
+    canvas.addEventListener('click', (event) => {
+      const { x, y } = getCanvasCoordinates(event);
+      const imageData = ctx.getImageData(x, y, 1, 1);
+      const pixel = imageData.data;
+      const color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+
+      // Set the selected color as text or background color
+      document.getElementById('textColor').value = color;
+      document.getElementById('backgroundColor').value = color;
+    });
+
+    canvas.addEventListener('mousedown', (event) => {
+      const { x, y } = getCanvasCoordinates(event);
+      startX = x;
+      startY = y;
+      isDrawing = true;
+    });
+
+    canvas.addEventListener('mousemove', (event) => {
+      if (!isDrawing) return;
+      const { x, y } = getCanvasCoordinates(event);
+      ctx.drawImage(image, 0, 0); // Redraw the image to clear previous rectangle
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(startX, startY, x - startX, y - startY);
+    });
+
+    canvas.addEventListener('mouseup', (event) => {
+      const { x, y } = getCanvasCoordinates(event);
+      document.getElementById('startX').value = startX;
+      document.getElementById('startY').value = startY;
+      document.getElementById('endX').value = x;
+      document.getElementById('endY').value = y;
+      isDrawing = false;
+    });
+
+    document.getElementById('update-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const response = await fetch('/update-contact-number', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.getElementById('download-link');
+        downloadLink.href = url;
+        document.getElementById('result').style.display = 'block';
+      } else {
+        alert('Error updating image.');
+      }
+    });
+  </script>
+</body>
+</html>
